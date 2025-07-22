@@ -327,7 +327,7 @@
             cardsContainer.innerHTML = '';
             const shuffledPrizes = [...prizes].sort(() => Math.random() - 0.5);
 
-            shuffledPrizes.forEach((prize, index) => {
+            prizes.forEach((prize, index) => {
                 const cardWrapper = document.createElement('div');
                 cardWrapper.className = 'card-wrapper';
 
