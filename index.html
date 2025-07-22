@@ -42,10 +42,10 @@
         #pack-container {
             position: absolute;
             /* Smaller initial responsive size */
-            width: 60vmin;
-            height: 80vmin;
-            max-width: 300px;
-            max-height: 400px;
+            width: 40vmin;
+            height: 60vmin;
+            max-width: 200px;
+            max-height: 300px;
             cursor: pointer;
             transition: transform 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
             z-index: 10; /* Above cards */
@@ -206,6 +206,20 @@
             opacity: 0;
             transform: scale(0.8); /* Shrink and fade other cards */
         }
+        
+        /* NEW: Styles for the continue button */
+        #continue-button {
+            position: absolute;
+            bottom: 10vh;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease-in-out;
+        }
+        
+        #continue-button.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
 
     </style>
 </head>
@@ -224,6 +238,11 @@
         
         <p id="prompt-text" class="absolute bottom-10 text-white text-2xl font-bold text-center transition-opacity duration-500">Tap to Open!</p>
     </div>
+    
+    <!-- NEW: Continue button added outside the main animation wrapper -->
+    <button id="continue-button" class="bg-white text-purple-600 font-bold py-3 px-8 rounded-full shadow-lg transform hover:scale-105 transition-transform">
+        Continue
+    </button>
 
     <script>
         // --- CONFIGURATION ---
@@ -241,6 +260,7 @@
         const packBottom = document.getElementById('pack-bottom');
         const cardsContainer = document.getElementById('cards-container');
         const promptText = document.getElementById('prompt-text');
+        const continueButton = document.getElementById('continue-button');
         
         let cardsRevealed = false;
         let animationInProgress = false;
@@ -290,6 +310,11 @@
                 cardsContainer.style.transform = 'scale(1)';
                 canFlip = true; // Allow flipping now that cards are fully grown
             }, 700 + 800); // 1.2s animation * 0.66
+        });
+        
+        // Add event listener for the continue button to reload the page
+        continueButton.addEventListener('click', () => {
+            location.reload();
         });
 
         /**
@@ -405,6 +430,10 @@
                         wrapper.classList.add('other');
                     }
                 });
+                
+                // Make the continue button appear
+                continueButton.classList.add('visible');
+
             }, 1800); // A longer delay to allow seeing all revealed cards before the final animation
         }
     </script>
