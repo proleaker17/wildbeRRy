@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mystery Box</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom font */
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden; /* Prevent scrollbars during animation */
+        }
+
+        /* Gradient background */
+        .gradient-bg {
+            background: linear-gradient(45deg, #f87171, #fb923c, #db2777, #c026d3);
+            background-size: 400% 400%;
+            animation: gradient-animation 15s ease infinite;
+        }
+
+        @keyframes gradient-animation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Main container for the entire animation sequence */
+        #animation-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* The mystery pack container */
+        #pack-container {
+            position: absolute;
+            /* Smaller initial responsive size */
+            width: 60vmin;
+            height: 80vmin;
+            max-width: 300px;
+            max-height: 400px;
+            cursor: pointer;
+            transition: transform 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 10; /* Above cards */
+        }
+        
+        /* The container for the package's visual elements */
+        #pack-visual {
+            position: absolute;
+            inset: 0;
+        }
+        
+        /* The initial, solid package view - NO rounded corners */
+        #pack-unopened {
+            position: absolute;
+            inset: 0;
+            background-image: url('wildberries.png');
+            /* FIX: Ensure the whole image is visible */
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+            transition: opacity 0.2s ease-out;
+            z-index: 12;
+        }
+
+        /* Shared styles for top and bottom pack parts */
+        .pack-part {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('wildberries.png');
+            /* FIX: Ensure the whole image is visible */
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+            transition: clip-path 0.4s ease-in-out;
+            opacity: 0; /* Hidden initially, revealed by JS */
+        }
+
+        #pack-top {
+            top: 0;
+            /* UPDATED: Initial cut at 45% */
+            clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%);
+            z-index: 10;
+        }
+        
+        #pack-bottom {
+            bottom: 0;
+            /* UPDATED: Initial cut at 45% */
+            clip-path: polygon(0 45%, 100% 45%, 100% 100%, 0 100%);
+            z-index: 9; /* Must be higher than cards */
+        }
+
+        @keyframes move-up-and-away {
+            0% { transform: translateY(0); }
+            33% { transform: translateY(-25%); }
+            66% { transform: translateY(-50%); }
+            100% { transform: translateY(-150vh); }
+        }
+
+        @keyframes move-down-and-away {
+            0% { transform: translateY(0); }
+            33% { transform: translateY(25%); }
+            66% { transform: translateY(50%); }
+            100% { transform: translateY(150vh); }
+        }
+
+        /* Animation states when 'opened' class is added */
+        #pack-container.opened #pack-top {
+            /* UPDATED: Torn edge now centered around 45% */
+            clip-path: polygon(0 0, 100% 0, 100% 43%, 85% 45%, 70% 42%, 50% 46%, 30% 41%, 15% 45%, 0 42%);
+            animation: move-up-and-away 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+        
+        #pack-container.opened #pack-bottom {
+            /* UPDATED: Torn edge now centered around 45% */
+            clip-path: polygon(0 42%, 15% 45%, 30% 41%, 50% 46%, 70% 42%, 85% 45%, 100% 43%, 100% 100%, 0 100%);
+            animation: move-down-and-away 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+
+        /* Card container styles */
+        #cards-container {
+            position: absolute;
+            inset: 0;
+            perspective: 1000px;
+            z-index: 8; /* Positioned UNDER the package */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 2vmin;
+            /* Transition for the group scaling */
+            transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+            /* Start even smaller to be hidden */
+            transform: scale(0.1);
+            opacity: 0;
+        }
+
+        /* Individual card styles */
+        .card {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.8s;
+            cursor: pointer;
+        }
+
+        .card.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* NEW Card Front Design */
+        .card-front {
+            background: linear-gradient(135deg, #a855f7, #7e22ce);
+            box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.2), 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        .card-front .question-mark {
+            font-size: 12vmin;
+            font-weight: 900;
+            color: white;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .card-back {
+            background-color: #f3f4f6;
+            transform: rotateY(180deg);
+            flex-direction: column;
+            padding: 1rem;
+            justify-content: center; /* Centered content */
+        }
+        
+        .card-wrapper {
+            position: relative; 
+            flex-shrink: 0;
+            transition: opacity 0.5s ease, transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        
+        /* NEW: Styles for chosen/other cards */
+        .card-wrapper.chosen {
+            z-index: 100;
+        }
+        
+        .card-wrapper.other {
+            opacity: 0;
+            transform: scale(0.8); /* Shrink and fade other cards */
+        }
+
+    </style>
+</head>
+<body class="gradient-bg min-h-screen flex items-center justify-center">
+
+    <div id="animation-wrapper">
+        <div id="cards-container"></div>
+        <div id="pack-container">
+            <div id="pack-visual">
+                <div id="pack-unopened"></div>
+                <div id="pack-top" class="pack-part"></div>
+                <div id="pack-bottom" class="pack-part"></div>
+                <!-- Removed the pack-label div -->
+            </div>
+        </div>
+        
+        <p id="prompt-text" class="absolute bottom-10 text-white text-2xl font-bold text-center transition-opacity duration-500">Tap to Open!</p>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const prizes = [
+            { name: 'AirPods Max 2', imageUrl: 'https://parspng.com/wp-content/uploads/2023/08/airpodspng.parspng.com-3-1024x1024.png' },
+            { name: 'Iphone 16 pro max', imageUrl: 'https://swisscomvbc.scene7.com/is/image/Swisscom/scs-11068191-de-000?wid=400&hei=400&fmt=webp-alpha&qlt=90' },
+            { name: 'Apple iPad Pro 11-inch', imageUrl: 'https://media.didi.ua/images/catalog/product_gallery/thumb/Hdxz5ms_1VeJ.png' }
+        ];
+
+        // --- DOM ELEMENTS ---
+        const animationWrapper = document.getElementById('animation-wrapper');
+        const packContainer = document.getElementById('pack-container');
+        const packUnopened = document.getElementById('pack-unopened');
+        const packTop = document.getElementById('pack-top');
+        const packBottom = document.getElementById('pack-bottom');
+        const cardsContainer = document.getElementById('cards-container');
+        const promptText = document.getElementById('prompt-text');
+        
+        let cardsRevealed = false;
+        let animationInProgress = false;
+        let canFlip = false; // Flag to control when cards can be flipped
+
+        // --- EVENT LISTENERS ---
+        packContainer.addEventListener('click', () => {
+            if (animationInProgress) return;
+            animationInProgress = true;
+            canFlip = false; // Disable flipping during animation
+            
+            promptText.style.opacity = '0';
+            
+            // *** FIX: Disable pointer events on the package so it doesn't block clicks on the cards underneath ***
+            packContainer.style.pointerEvents = 'none';
+
+            const rect = packContainer.getBoundingClientRect();
+            const viewportHeight = window.innerHeight;
+            // Scale the package to fill 75% of the screen's height
+            const targetHeight = viewportHeight * 0.75;
+            const scaleFactor = targetHeight / rect.height;
+            packContainer.style.transform = `scale(${scaleFactor})`;
+
+            // Make the card group visible but still very small
+            cardsContainer.style.opacity = '1';
+
+            setTimeout(() => {
+                // Hide the solid package and show the two parts that will animate
+                packUnopened.style.opacity = '0';
+                packTop.style.opacity = '1';
+                packBottom.style.opacity = '1';
+                
+                packContainer.classList.add('opened');
+                
+                // First growth step, synced with first package move
+                cardsContainer.style.transform = 'scale(0.4)';
+
+            }, 700);
+
+            // Second growth step, synced with second package move
+            setTimeout(() => {
+                cardsContainer.style.transform = 'scale(0.7)';
+            }, 700 + 400); // 1.2s animation * 0.33
+
+            // Final growth step, synced with final package move
+            setTimeout(() => {
+                cardsContainer.style.transform = 'scale(1)';
+                canFlip = true; // Allow flipping now that cards are fully grown
+            }, 700 + 800); // 1.2s animation * 0.66
+        });
+
+        /**
+         * Calculates and applies responsive dimensions to cards.
+         */
+        function setCardDimensions() {
+            const cardWrappers = document.querySelectorAll('.card-wrapper');
+            if (cardWrappers.length === 0) return;
+
+            const vh = window.innerHeight;
+            const vmin = Math.min(window.innerWidth, vh) / 100;
+            const gap = 2 * vmin;
+            
+            // Calculate total available height (70% of viewport height)
+            const maxTotalHeight = vh * 0.70;
+            
+            // Calculate height for each card
+            const totalGapHeight = (cardWrappers.length - 1) * gap;
+            let cardHeight = (maxTotalHeight - totalGapHeight) / cardWrappers.length;
+            
+            // Calculate width based on a 2:3 aspect ratio
+            let cardWidth = cardHeight * (2 / 3);
+            
+            // Apply dimensions to each card
+            cardWrappers.forEach(wrapper => {
+                wrapper.style.width = `${cardWidth}px`;
+                wrapper.style.height = `${cardHeight}px`;
+            });
+        }
+
+        /**
+         * Generates and prepares the cards to be animated.
+         */
+        function showCards() {
+            cardsContainer.innerHTML = '';
+            const shuffledPrizes = [...prizes].sort(() => Math.random() - 0.5);
+
+            shuffledPrizes.forEach((prize, index) => {
+                const cardWrapper = document.createElement('div');
+                cardWrapper.className = 'card-wrapper';
+
+                const card = document.createElement('div');
+                card.className = 'card';
+                // Add a data attribute to the card for easy identification
+                card.dataset.index = index;
+
+                const cardFront = document.createElement('div');
+                cardFront.className = 'card-face card-front';
+                cardFront.innerHTML = `<span class="question-mark">?</span>`;
+
+                const cardBack = document.createElement('div');
+                cardBack.className = 'card-face card-back';
+                // Updated card back design
+                cardBack.innerHTML = `
+                    <img src="${prize.imageUrl}" alt="${prize.name}" class="w-full h-3/4 object-contain" onerror="this.onerror=null;this.src='https://placehold.co/300x400/cccccc/ffffff?text=Item';">
+                    <h3 class="font-bold text-lg text-gray-800 mt-2">${prize.name}</h3>
+                `;
+
+                card.appendChild(cardFront);
+                card.appendChild(cardBack);
+                cardWrapper.appendChild(card);
+                cardsContainer.appendChild(cardWrapper);
+
+                card.addEventListener('click', () => handleCardClick(card));
+            });
+            
+            // Set the calculated dimensions after cards are created
+            setCardDimensions();
+        }
+        
+        // Call showCards on page load to have them ready but hidden
+        showCards();
+        
+        // Recalculate dimensions on window resize
+        window.addEventListener('resize', setCardDimensions);
+
+        /**
+         * Handles the logic when a card is clicked.
+         */
+        function handleCardClick(clickedCard) {
+            // Use the canFlip flag to check if interaction is allowed
+            if (cardsRevealed || !canFlip) return;
+
+            cardsRevealed = true;
+
+            const clickedWrapper = clickedCard.closest('.card-wrapper');
+            clickedCard.classList.add('flipped');
+
+            // First timeout: Flip the other cards after a delay
+            setTimeout(() => {
+                document.querySelectorAll('.card').forEach((card) => {
+                    if (card !== clickedCard) {
+                        card.classList.add('flipped');
+                    }
+                });
+            }, 800); // 800ms delay to see the first card flip
+
+            // Second timeout: Animate the chosen card and fade the others
+            setTimeout(() => {
+                // Get the coordinates for the center of the screen
+                const wrapperRect = animationWrapper.getBoundingClientRect();
+                const cardRect = clickedWrapper.getBoundingClientRect();
+                
+                const deltaX = (wrapperRect.left + wrapperRect.width / 2) - (cardRect.left + cardRect.width / 2);
+                const deltaY = (wrapperRect.top + wrapperRect.height / 2) - (cardRect.top + cardRect.height / 2);
+
+                document.querySelectorAll('.card-wrapper').forEach(wrapper => {
+                    if (wrapper === clickedWrapper) {
+                        wrapper.classList.add('chosen');
+                        // Apply the transform to fly to the middle and enlarge
+                        wrapper.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(1.2)`;
+                    } else {
+                        wrapper.classList.add('other');
+                    }
+                });
+            }, 1800); // A longer delay to allow seeing all revealed cards before the final animation
+        }
+    </script>
+</body>
+</html>
