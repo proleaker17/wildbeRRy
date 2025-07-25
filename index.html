@@ -206,20 +206,6 @@
             opacity: 0;
             transform: scale(0.8); /* Shrink and fade other cards */
         }
-        
-        /* NEW: Styles for the continue button */
-        #continue-button {
-            position: absolute;
-            bottom: 10vh;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.5s ease-in-out;
-        }
-        
-        #continue-button.visible {
-            opacity: 1;
-            pointer-events: auto;
-        }
 
     </style>
 </head>
@@ -232,18 +218,10 @@
                 <div id="pack-unopened"></div>
                 <div id="pack-top" class="pack-part"></div>
                 <div id="pack-bottom" class="pack-part"></div>
-                <!-- Removed the pack-label div -->
             </div>
         </div>
-        
-        <p id="prompt-text" class="absolute bottom-10 text-white text-2xl font-bold text-center transition-opacity duration-500">Tap to Open!</p>
     </div>
     
-    <!-- NEW: Continue button added outside the main animation wrapper -->
-    <button id="continue-button" class="bg-white text-purple-600 font-bold py-3 px-8 rounded-full shadow-lg transform hover:scale-105 transition-transform">
-        Continue
-    </button>
-
     <script>
         // --- CONFIGURATION ---
         const prizes = [
@@ -259,8 +237,6 @@
         const packTop = document.getElementById('pack-top');
         const packBottom = document.getElementById('pack-bottom');
         const cardsContainer = document.getElementById('cards-container');
-        const promptText = document.getElementById('prompt-text');
-        const continueButton = document.getElementById('continue-button');
         
         let cardsRevealed = false;
         let animationInProgress = false;
@@ -271,8 +247,6 @@
             if (animationInProgress) return;
             animationInProgress = true;
             canFlip = false; // Disable flipping during animation
-            
-            promptText.style.opacity = '0';
             
             // *** FIX: Disable pointer events on the package so it doesn't block clicks on the cards underneath ***
             packContainer.style.pointerEvents = 'none';
@@ -311,11 +285,6 @@
                 canFlip = true; // Allow flipping now that cards are fully grown
             }, 700 + 800); // 1.2s animation * 0.66
         });
-        
-        // Add event listener for the continue button to reload the page
-        continueButton.addEventListener('click', () => {
-            location.reload();
-        });
 
         /**
          * Calculates and applies responsive dimensions to cards.
@@ -352,7 +321,7 @@
             cardsContainer.innerHTML = '';
             const shuffledPrizes = [...prizes].sort(() => Math.random() - 0.5);
 
-            prizes.forEach((prize, index) => {
+            shuffledPrizes.forEach((prize, index) => {
                 const cardWrapper = document.createElement('div');
                 cardWrapper.className = 'card-wrapper';
 
@@ -430,10 +399,6 @@
                         wrapper.classList.add('other');
                     }
                 });
-                
-                // Make the continue button appear
-                continueButton.classList.add('visible');
-
             }, 1800); // A longer delay to allow seeing all revealed cards before the final animation
         }
     </script>
